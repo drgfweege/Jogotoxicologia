@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Circuito Lento — Toxicologia dos Depressores do SNC</title>
+<meta name="description" content="Jogo de tabuleiro educativo sobre drogas depressoras do sistema nervoso central para o ensino médio.">
+<meta name="theme-color" content="#0a1118">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Circuito Lento">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root{
+    --bg:#0a1118;
+    --panel:#0f1b26;
+    --panel-2:#13222f;
+    --line:#1d3340;
+    --ink:#dbe7ec;
+    --dim:#7d97a3;
+    --gaba:#4fd1c5;      /* azul-esverdeado calmo: tema "freio" GABA */
+    --gaba-deep:#1f6b66;
+    --alert:#e8a13a;     /* atenção/risco */
+    --danger:#e0584f;    /* superdose */
+    --good:#7fc97f;
+    --gold:#f0d36b;
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    background:
+      radial-gradient(1200px 600px at 80% -10%, rgba(79,209,197,.08), transparent 60%),
+      radial-gradient(900px 500px at -10% 110%, rgba(31,107,102,.12), transparent 55%),
+      var(--bg);
+    color:var(--ink);
+    font-family:'Space Grotesk',system-ui,sans-serif;
+    line-height:1.5;
+    min-height:100vh;
+    padding:clamp(14px,3vw,36px);
+  }
+
+  .wrap{max-width:1180px;margin:0 auto}
+
+  /* ---------- HERO ---------- */
+  header{
+    border:1px solid var(--line);
+    border-radius:18px;
+    background:linear-gradient(160deg,var(--panel),var(--panel-2));
+    padding:clamp(20px,4vw,40px);
+    position:relative;
+    overflow:hidden;
+  }
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:.72rem;letter-spacing:.32em;text-transform:uppercase;
+    color:var(--gaba);margin-bottom:14px;
+  }
+  h1{
+    font-size:clamp(1.9rem,5.5vw,3.6rem);
+    font-weight:700;line-height:1.02;letter-spacing:-.02em;
+  }
+  h1 .slow{color:var(--gaba)}
+  .sub{color:var(--dim);max-width:60ch;margin-top:14px;font-size:clamp(.95rem,1.6vw,1.08rem)}
+  .pulse-line{
+    position:absolute;right:-40px;top:30px;width:340px;height:200px;opacity:.5;
+    pointer-events:none;
+  }
+  @media(max-width:760px){.pulse-line{display:none}}
+
+  /* ---------- SETUP CARD ---------- */
+  .setup{
+    margin-top:18px;display:grid;gap:14px;
+    grid-template-columns:1.3fr 1fr;
+  }
+  @media(max-width:820px){.setup{grid-template-columns:1fr}}
+  .card{
+    border:1px solid var(--line);border-radius:16px;
+    background:var(--panel);padding:clamp(16px,2.5vw,24px);
+  }
+  .card h2{font-size:1.05rem;letter-spacing:.01em;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  .tag{font-family:'IBM Plex Mono',monospace;font-size:.62rem;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--bg);background:var(--gaba);padding:3px 8px;border-radius:6px}
+
+  .rules{font-size:.92rem;color:var(--dim)}
+  .rules li{margin:7px 0 7px 18px}
+  .rules b{color:var(--ink);font-weight:600}
+
+  .players{display:flex;flex-direction:column;gap:10px}
+  .prow{display:flex;align-items:center;gap:10px}
+  .swatch{width:26px;height:26px;border-radius:8px;flex:none;border:2px solid rgba(255,255,255,.15)}
+  input[type=text]{
+    flex:1;background:var(--panel-2);border:1px solid var(--line);color:var(--ink);
+    border-radius:9px;padding:9px 12px;font-family:'Space Grotesk',sans-serif;font-size:.95rem;
+  }
+  input[type=text]:focus{outline:none;border-color:var(--gaba)}
+  .ctrl-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+  button{
+    font-family:'Space Grotesk',sans-serif;font-weight:600;cursor:pointer;
+    border:1px solid var(--line);background:var(--panel-2);color:var(--ink);
+    border-radius:10px;padding:10px 16px;font-size:.92rem;transition:.15s;
+  }
+  button:hover{border-color:var(--gaba);transform:translateY(-1px)}
+  button.primary{background:var(--gaba);color:#062420;border-color:var(--gaba)}
+  button.primary:hover{filter:brightness(1.08)}
+  button:disabled{opacity:.4;cursor:not-allowed;transform:none}
+
+  /* ---------- BOARD ---------- */
+  .game{margin-top:18px;display:grid;grid-template-columns:1fr 330px;gap:16px}
+  @media(max-width:980px){.game{grid-template-columns:1fr}}
+
+  .boardwrap{
+    border:1px solid var(--line);border-radius:16px;background:var(--panel);
+    padding:clamp(12px,2vw,20px);
+  }
+  .board-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px}
+  .board-head h2{font-size:1.05rem}
+  .board-head span{font-family:'IBM Plex Mono',monospace;font-size:.7rem;color:var(--dim);letter-spacing:.12em}
+
+  .track{
+    display:grid;
+    grid-template-columns:repeat(6,1fr);
+    gap:8px;
+  }
+  @media(max-width:520px){.track{grid-template-columns:repeat(4,1fr);gap:6px}}
+
+  .cell{
+    aspect-ratio:1;border-radius:12px;border:1px solid var(--line);
+    background:var(--panel-2);position:relative;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;padding:5px;text-align:center;overflow:hidden;
+    transition:.2s;
+  }
+  .cell .num{position:absolute;top:5px;left:7px;font-family:'IBM Plex Mono',monospace;
+    font-size:.6rem;color:var(--dim)}
+  .cell .ico{font-size:1.35rem;line-height:1}
+  .cell .lab{font-size:.56rem;color:var(--dim);margin-top:3px;line-height:1.1;letter-spacing:.02em}
+  .cell.start{border-color:var(--gaba);background:linear-gradient(150deg,rgba(79,209,197,.18),var(--panel-2))}
+  .cell.finish{border-color:var(--gold);background:linear-gradient(150deg,rgba(240,211,107,.16),var(--panel-2))}
+  .cell.q{border-color:var(--gaba-deep)}
+  .cell.event-good{border-color:var(--good)}
+  .cell.event-bad{border-color:var(--danger)}
+  .cell.active{box-shadow:0 0 0 2px var(--gaba),0 0 22px rgba(79,209,197,.35);transform:scale(1.04);z-index:2}
+
+  .tokens{position:absolute;bottom:4px;display:flex;gap:3px;flex-wrap:wrap;justify-content:center}
+  .tok{width:13px;height:13px;border-radius:50%;border:2px solid rgba(0,0,0,.35);
+    box-shadow:0 1px 3px rgba(0,0,0,.4)}
+
+  /* ---------- SIDE PANEL ---------- */
+  .side{display:flex;flex-direction:column;gap:14px}
+  .turn-card{border:1px solid var(--line);border-radius:16px;background:linear-gradient(160deg,var(--panel),var(--panel-2));padding:18px}
+  .turn-card .who{display:flex;align-items:center;gap:10px;font-size:1.15rem;font-weight:700}
+  .dot{width:18px;height:18px;border-radius:50%;flex:none}
+  .dice{font-family:'IBM Plex Mono',monospace;font-size:2.6rem;font-weight:600;text-align:center;
+    margin:10px 0 4px;letter-spacing:.05em}
+  .dice.rolling{animation:shake .5s}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+  .msg{font-size:.86rem;color:var(--dim);min-height:2.4em;text-align:center}
+
+  .scoreboard{border:1px solid var(--line);border-radius:16px;background:var(--panel);padding:16px}
+  .scoreboard h3{font-size:.78rem;letter-spacing:.2em;text-transform:uppercase;color:var(--dim);
+    font-family:'IBM Plex Mono',monospace;margin-bottom:10px}
+  .srow{display:flex;align-items:center;gap:9px;padding:6px 0;border-bottom:1px solid var(--line);font-size:.92rem}
+  .srow:last-child{border-bottom:none}
+  .srow .pos{font-family:'IBM Plex Mono',monospace;color:var(--dim);font-size:.78rem;width:34px}
+  .srow .nm{flex:1}
+  .srow .pts{font-family:'IBM Plex Mono',monospace;color:var(--gaba);font-weight:600}
+
+  /* ---------- MODAL ---------- */
+  .overlay{position:fixed;inset:0;background:rgba(4,9,13,.82);backdrop-filter:blur(4px);
+    display:none;align-items:center;justify-content:center;padding:18px;z-index:50}
+  .overlay.show{display:flex}
+  .modal{
+    width:min(560px,100%);border:1px solid var(--line);border-radius:18px;
+    background:linear-gradient(165deg,var(--panel),var(--panel-2));padding:clamp(20px,4vw,32px);
+    max-height:90vh;overflow:auto;
+  }
+  .modal .kind{font-family:'IBM Plex Mono',monospace;font-size:.7rem;letter-spacing:.22em;
+    text-transform:uppercase;margin-bottom:10px}
+  .modal h3{font-size:1.3rem;line-height:1.2;margin-bottom:14px}
+  .q-text{font-size:1.05rem;margin-bottom:18px}
+  .opts{display:flex;flex-direction:column;gap:9px}
+  .opt{text-align:left;width:100%;padding:13px 15px;border-radius:11px;border:1px solid var(--line);
+    background:var(--panel-2);color:var(--ink);font-size:.95rem;cursor:pointer;transition:.13s}
+  .opt:hover{border-color:var(--gaba);transform:translateX(3px)}
+  .opt.correct{border-color:var(--good);background:rgba(127,201,127,.15)}
+  .opt.wrong{border-color:var(--danger);background:rgba(224,88,79,.13)}
+  .opt:disabled{cursor:default;transform:none}
+  .explain{margin-top:18px;font-size:.9rem;color:var(--dim);border-left:3px solid var(--gaba);
+    padding:10px 14px;background:rgba(79,209,197,.06);border-radius:0 10px 10px 0;display:none}
+  .explain.show{display:block}
+  .explain b{color:var(--ink)}
+  .modal-foot{margin-top:20px;display:flex;justify-content:flex-end}
+
+  .event-icon{font-size:3rem;text-align:center;margin-bottom:10px}
+  .event-body{text-align:center;font-size:1.02rem}
+  .event-delta{text-align:center;font-family:'IBM Plex Mono',monospace;font-weight:600;
+    font-size:1.5rem;margin:14px 0}
+
+  .win .event-icon{font-size:4rem}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:14px;font-size:.74rem;color:var(--dim)}
+  .legend span{display:flex;align-items:center;gap:6px}
+  .legend i{width:11px;height:11px;border-radius:3px;display:inline-block}
+
+  footer{margin-top:22px;text-align:center;font-size:.74rem;color:var(--dim);
+    font-family:'IBM Plex Mono',monospace;letter-spacing:.06em}
+  .hidden{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <svg class="pulse-line" viewBox="0 0 340 200" fill="none" stroke="#4fd1c5" stroke-width="2">
+      <path d="M0 100 H80 L95 100 L105 60 L120 140 L135 100 H180 L195 100 L205 80 L215 120 L225 100 H340"
+            opacity=".7"/>
+      <circle cx="180" cy="100" r="4" fill="#4fd1c5" stroke="none"/>
+    </svg>
+    <div class="eyebrow">Toxicologia · Sistema Nervoso Central</div>
+    <h1>Circuito <span class="slow">Lento</span></h1>
+    <p class="sub">Um jogo de tabuleiro sobre as drogas depressoras do SNC — substâncias que <b>freiam</b> a atividade neural. Avance pelo circuito, responda perguntas e administre os riscos. Quem dominar a farmacologia da inibição chega primeiro à sinapse final.</p>
+  </header>
+
+  <!-- ===== SETUP ===== -->
+  <section id="setup" class="setup">
+    <div class="card">
+      <h2><span class="tag">Como jogar</span> Regras</h2>
+      <ul class="rules">
+        <li><b>2 a 4 jogadores.</b> Cada um começa na casa de partida (Membrana).</li>
+        <li>Na sua vez, role o dado e avance o número de casas.</li>
+        <li><b>Casas de Pergunta (❓):</b> acerte para ganhar <b>+10 pontos</b>; errar custa <b>−5</b>.</li>
+        <li><b>Casas de Evento (⚡):</b> a farmacologia do depressor avança ou recua seu peão.</li>
+        <li>Vence quem chegar primeiro à <b>Sinapse Final</b> com mais pontos como critério de desempate.</li>
+        <li>O conteúdo cobre álcool, benzodiazepínicos, barbitúricos, opioides e inalantes.</li>
+      </ul>
+      <div class="legend">
+        <span><i style="background:var(--gaba)"></i>Partida</span>
+        <span><i style="background:var(--gaba-deep)"></i>Pergunta</span>
+        <span><i style="background:var(--good)"></i>Evento bom</span>
+        <span><i style="background:var(--danger)"></i>Evento de risco</span>
+        <span><i style="background:var(--gold)"></i>Sinapse final</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2><span class="tag">Setup</span> Jogadores</h2>
+      <div class="players" id="playerInputs"></div>
+      <div class="ctrl-row">
+        <button id="addP">+ Jogador</button>
+        <button id="remP">– Jogador</button>
+        <button class="primary" id="startBtn">Iniciar jogo →</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== GAME ===== -->
+  <section id="game" class="game hidden">
+    <div class="boardwrap">
+      <div class="board-head">
+        <h2>Circuito Neural</h2>
+        <span id="trackInfo">28 casas · da Membrana à Sinapse</span>
+      </div>
+      <div class="track" id="track"></div>
+    </div>
+
+    <aside class="side">
+      <div class="turn-card">
+        <div class="who"><span class="dot" id="turnDot"></span><span id="turnName">—</span></div>
+        <div class="dice" id="dice">–</div>
+        <div class="msg" id="msg">Role o dado para começar.</div>
+        <div class="ctrl-row" style="justify-content:center">
+          <button class="primary" id="rollBtn">🎲 Rolar dado</button>
+        </div>
+      </div>
+
+      <div class="scoreboard">
+        <h3>Placar</h3>
+        <div id="scoreList"></div>
+      </div>
+    </aside>
+  </section>
+
+  <footer>Conteúdo educativo · ensino médio · finalidade pedagógica de toxicologia</footer>
+</div>
+
+<!-- ===== MODAL ===== -->
+<div class="overlay" id="overlay">
+  <div class="modal" id="modal"></div>
+</div>
+
+<script>
+/* ---------------- DATA ---------------- */
+const COLORS = ["#4fd1c5","#e8a13a","#c98be0","#7fc97f","#e0584f","#6ba8e0"];
+
+const QUESTIONS = [
+  {q:"Qual é o principal neurotransmissor INIBITÓRIO do SNC, reforçado pela maioria dos depressores?",
+   o:["Dopamina","GABA","Glutamato","Adrenalina"],a:1,
+   e:"Os depressores (álcool, benzodiazepínicos, barbitúricos) potencializam o <b>GABA</b>, o principal neurotransmissor inibitório — por isso 'freiam' o sistema nervoso."},
+  {q:"O que caracteriza uma droga DEPRESSORA do SNC?",
+   o:["Aumenta o estado de alerta e a frequência cardíaca","Provoca alucinações intensas","Diminui a atividade cerebral, causando sedação e lentidão","Não altera a consciência"],a:2,
+   e:"Depressores <b>reduzem</b> a atividade do SNC: sonolência, relaxamento, fala arrastada e reflexos mais lentos."},
+  {q:"O álcool (etanol) é classificado como:",
+   o:["Estimulante","Depressor do SNC","Alucinógeno","Sem efeito sobre o SNC"],a:1,
+   e:"Apesar da euforia inicial, o álcool é um <b>depressor</b>: deprime progressivamente o SNC conforme a dose aumenta."},
+  {q:"Os benzodiazepínicos (ex.: diazepam) são usados principalmente para:",
+   o:["Tratar ansiedade e insônia","Aumentar a pressão arterial","Estimular o apetite por euforia","Combater infecções"],a:0,
+   e:"<b>Benzodiazepínicos</b> são ansiolíticos e sedativos. Têm risco de dependência e potencializam outros depressores."},
+  {q:"Por que misturar álcool com benzodiazepínicos é perigoso?",
+   o:["Os efeitos se anulam","Há efeito depressor somado, podendo parar a respiração","Vira um estimulante","Não há interação"],a:1,
+   e:"O efeito depressor é <b>sinérgico</b>: a soma pode causar depressão respiratória grave e morte."},
+  {q:"Qual classe de depressores está associada a risco de PARADA RESPIRATÓRIA em superdose?",
+   o:["Vitaminas","Opioides","Antibióticos","Antiácidos"],a:1,
+   e:"<b>Opioides</b> (morfina, heroína, fentanil) deprimem o centro respiratório no tronco encefálico — principal causa de morte por superdose."},
+  {q:"A naloxona é um medicamento que serve para:",
+   o:["Potencializar opioides","Reverter a superdose por opioides","Causar dependência","Tratar resfriado"],a:1,
+   e:"A <b>naloxona</b> é um antagonista que bloqueia os receptores opioides e reverte a depressão respiratória da superdose."},
+  {q:"Os inalantes (cola, solventes, 'loló') atuam no SNC como:",
+   o:["Estimulantes","Depressores de ação rápida","Anti-inflamatórios","Hormônios"],a:1,
+   e:"<b>Inalantes</b> são depressores voláteis de ação muito rápida; podem causar a 'morte súbita por inalação' (arritmia)."},
+  {q:"A síndrome de abstinência alcoólica grave pode causar:",
+   o:["Apenas dor de cabeça leve","Convulsões e delirium tremens","Aumento permanente de QI","Imunidade a outras drogas"],a:1,
+   e:"A abstinência de álcool pode evoluir para <b>delirium tremens</b> e convulsões — um quadro potencialmente fatal que exige atendimento médico."},
+  {q:"Os barbitúricos caíram em desuso como sedativos porque:",
+   o:["São muito caros de produzir","Têm margem de segurança estreita e alto risco de superdose","Não funcionam","São estimulantes"],a:1,
+   e:"<b>Barbitúricos</b> têm janela terapêutica estreita: a dose eficaz é próxima da dose letal, por isso foram substituídos por benzodiazepínicos."},
+  {q:"'Tolerância' a um depressor significa que a pessoa:",
+   o:["Precisa de doses maiores para o mesmo efeito","Fica imune para sempre","Não sente mais nada","Elimina a droga instantaneamente"],a:0,
+   e:"<b>Tolerância</b>: com o uso repetido, o organismo se adapta e exige doses crescentes — o que aumenta o risco de superdose."},
+  {q:"Sinais clássicos de intoxicação por depressores incluem:",
+   o:["Pupilas dilatadas e agitação extrema","Fala arrastada, sonolência e descoordenação","Febre alta e suor","Aumento da força física"],a:1,
+   e:"Depressores causam <b>fala arrastada, sedação, descoordenação motora</b> e queda dos reflexos — o oposto dos estimulantes."},
+  {q:"O termo 'depressão respiratória' significa:",
+   o:["Tristeza profunda","Respiração lenta e superficial, podendo cessar","Pulmão inflamado","Falta de ar por exercício"],a:1,
+   e:"<b>Depressão respiratória</b> é a queda da frequência e profundidade da respiração — o principal mecanismo de morte por depressores."},
+  {q:"Qual afirmação sobre dependência de depressores é correta?",
+   o:["Só existe dependência de drogas ilícitas","Medicamentos prescritos também podem gerar dependência","Depressores nunca viciam","Dependência é só psicológica"],a:1,
+   e:"Mesmo medicamentos legais e prescritos, como benzodiazepínicos, podem causar <b>dependência física e psicológica</b>."},
+];
+
+const EVENTS = [
+  {good:true, ico:"💊", t:"Você aprendeu o mecanismo do GABA e antecipou o efeito sedativo. Avance 2 casas.", move:2},
+  {good:false, ico:"🍺", t:"Subestimou a interação álcool + remédio. Efeito depressor somado: volte 2 casas.", move:-2},
+  {good:true, ico:"🩺", t:"Reconheceu a depressão respiratória a tempo e aplicou naloxona. Avance 3 casas.", move:3},
+  {good:false, ico:"😴", t:"Sedação excessiva por barbitúrico de janela estreita. Perca a próxima vez.", move:0, skip:true},
+  {good:true, ico:"🧠", t:"Identificou os sinais de tolerância antes da superdose. +15 pontos.", move:0, pts:15},
+  {good:false, ico:"⚠️", t:"Ignorou a abstinência alcoólica e o quadro piorou. −10 pontos.", move:0, pts:-10},
+  {good:true, ico:"🚑", t:"Encaminhou o caso ao atendimento médico rapidamente. Avance 1 casa e +5 pontos.", move:1, pts:5},
+  {good:false, ico:"🌫️", t:"Exposição a inalantes voláteis: tontura e confusão. Volte 1 casa.", move:-1},
+];
+
+/* board layout: indices and types. 0=start, last=finish */
+const N = 28;
+const SPECIAL = {}; // index -> 'q' | 'eg' | 'eb'
+[2,5,8,11,14,17,20,23,26].forEach(i=>SPECIAL[i]='q');
+[3,9,15,21,25].forEach(i=>SPECIAL[i]='eg');
+[4,7,13,19,24].forEach(i=>SPECIAL[i]='eb');
+
+const CELL_LABELS = {
+  0:["🧬","Membrana"], 27:["⚡","Sinapse"],
+};
+
+/* ---------------- STATE ---------------- */
+let players=[]; let turn=0; let pendingMove=0; let usedQ=[]; let gameStarted=false;
+
+/* ---------------- SETUP UI ---------------- */
+const playerInputs=document.getElementById('playerInputs');
+function renderPlayerInputs(n){
+  playerInputs.innerHTML='';
+  for(let i=0;i<n;i++){
+    const row=document.createElement('div');row.className='prow';
+    row.innerHTML=`<span class="swatch" style="background:${COLORS[i]}"></span>
+      <input type="text" placeholder="Jogador ${i+1}" value="${players[i]?.name||'Jogador '+(i+1)}" data-i="${i}">`;
+    playerInputs.appendChild(row);
+  }
+}
+let pCount=2;
+renderPlayerInputs(pCount);
+
+document.getElementById('addP').onclick=()=>{ if(pCount<4){pCount++;renderPlayerInputs(pCount);} };
+document.getElementById('remP').onclick=()=>{ if(pCount>2){pCount--;renderPlayerInputs(pCount);} };
+
+document.getElementById('startBtn').onclick=()=>{
+  const inputs=[...playerInputs.querySelectorAll('input')];
+  players=inputs.map((inp,i)=>({
+    name:inp.value.trim()||('Jogador '+(i+1)),
+    color:COLORS[i], pos:0, pts:0, skip:false
+  }));
+  turn=0; gameStarted=true; usedQ=[];
+  document.getElementById('setup').classList.add('hidden');
+  document.getElementById('game').classList.remove('hidden');
+  buildBoard(); renderAll();
+};
+
+/* ---------------- BOARD ---------------- */
+function buildBoard(){
+  const track=document.getElementById('track');
+  track.innerHTML='';
+  for(let i=0;i<N;i++){
+    const c=document.createElement('div');
+    c.className='cell'; c.id='cell'+i;
+    let ico='·', lab='', cls='';
+    if(i===0){ico='🧬';lab='Membrana';cls='start';}
+    else if(i===N-1){ico='⚡';lab='Sinapse';cls='finish';}
+    else if(SPECIAL[i]==='q'){ico='❓';lab='Pergunta';cls='q';}
+    else if(SPECIAL[i]==='eg'){ico='⚡';lab='Evento';cls='event-good';}
+    else if(SPECIAL[i]==='eb'){ico='⚠️';lab='Risco';cls='event-bad';}
+    else {ico='○';lab='';}
+    if(cls)c.classList.add(cls);
+    c.innerHTML=`<span class="num">${i===0?'IN':i===N-1?'FIM':i}</span>
+      <span class="ico">${ico}</span><span class="lab">${lab}</span>
+      <span class="tokens" id="tok${i}"></span>`;
+    track.appendChild(c);
+  }
+}
+
+function renderTokens(){
+  for(let i=0;i<N;i++){document.getElementById('tok'+i).innerHTML='';}
+  players.forEach(p=>{
+    const t=document.getElementById('tok'+p.pos);
+    const d=document.createElement('span');d.className='tok';d.style.background=p.color;
+    t.appendChild(d);
+  });
+  document.querySelectorAll('.cell').forEach(c=>c.classList.remove('active'));
+  document.getElementById('cell'+players[turn].pos).classList.add('active');
+}
+
+function renderTurn(){
+  const p=players[turn];
+  document.getElementById('turnDot').style.background=p.color;
+  document.getElementById('turnName').textContent=p.name;
+}
+
+function renderScore(){
+  const list=document.getElementById('scoreList');
+  const ranked=[...players].map((p,i)=>({...p,_i:i}))
+    .sort((a,b)=> b.pos-a.pos || b.pts-a.pts);
+  list.innerHTML='';
+  ranked.forEach((p,idx)=>{
+    const r=document.createElement('div');r.className='srow';
+    r.innerHTML=`<span class="pos">#${idx+1}</span>
+      <span class="dot" style="width:12px;height:12px;background:${p.color}"></span>
+      <span class="nm">${p.name}</span>
+      <span class="pts">${p.pts} pt · ${p.pos}/${N-1}</span>`;
+    list.appendChild(r);
+  });
+}
+
+function renderAll(){renderTokens();renderTurn();renderScore();}
+
+/* ---------------- TURN LOGIC ---------------- */
+const rollBtn=document.getElementById('rollBtn');
+const diceEl=document.getElementById('dice');
+const msgEl=document.getElementById('msg');
+
+rollBtn.onclick=()=>{
+  if(!gameStarted)return;
+  const p=players[turn];
+  if(p.skip){
+    p.skip=false;
+    msgEl.textContent=`${p.name} estava sedado e perdeu a vez.`;
+    nextTurn(); return;
+  }
+  rollBtn.disabled=true;
+  diceEl.classList.add('rolling');
+  let ticks=0;
+  const anim=setInterval(()=>{
+    diceEl.textContent=(1+Math.floor(Math.random()*6));
+    if(++ticks>8){
+      clearInterval(anim);
+      diceEl.classList.remove('rolling');
+      const roll=1+Math.floor(Math.random()*6);
+      diceEl.textContent=roll;
+      movePlayer(roll);
+    }
+  },55);
+};
+
+function movePlayer(steps){
+  const p=players[turn];
+  let target=p.pos+steps;
+  if(target>=N-1){ p.pos=N-1; renderAll(); return win(p); }
+  p.pos=target; renderAll();
+  msgEl.textContent=`${p.name} avançou ${steps} casa(s).`;
+  setTimeout(()=>resolveCell(p),450);
+}
+
+function resolveCell(p){
+  const type=SPECIAL[p.pos];
+  if(type==='q'){ askQuestion(p); }
+  else if(type==='eg'){ showEvent(p,true); }
+  else if(type==='eb'){ showEvent(p,false); }
+  else { endTurn(); }
+}
+
+/* ---------------- QUESTIONS ---------------- */
+function pickQuestion(){
+  if(usedQ.length>=QUESTIONS.length)usedQ=[];
+  let idx; do{idx=Math.floor(Math.random()*QUESTIONS.length);}while(usedQ.includes(idx));
+  usedQ.push(idx); return QUESTIONS[idx];
+}
+
+const overlay=document.getElementById('overlay');
+const modal=document.getElementById('modal');
+
+function askQuestion(p){
+  const q=pickQuestion();
+  modal.className='modal';
+  modal.innerHTML=`
+    <div class="kind" style="color:var(--gaba)">Casa de Pergunta · ${p.name}</div>
+    <h3>Toxicologia dos depressores</h3>
+    <div class="q-text">${q.q}</div>
+    <div class="opts" id="opts"></div>
+    <div class="explain" id="explain"></div>
+    <div class="modal-foot hidden" id="foot">
+      <button class="primary" id="contBtn">Continuar →</button>
+    </div>`;
+  const opts=modal.querySelector('#opts');
+  q.o.forEach((txt,i)=>{
+    const b=document.createElement('button');b.className='opt';b.textContent=txt;
+    b.onclick=()=>answer(p,q,i,opts);
+    opts.appendChild(b);
+  });
+  show();
+}
+
+function answer(p,q,i,opts){
+  [...opts.children].forEach((b,j)=>{
+    b.disabled=true;
+    if(j===q.a)b.classList.add('correct');
+    if(j===i&&i!==q.a)b.classList.add('wrong');
+  });
+  const ex=modal.querySelector('#explain');
+  if(i===q.a){ p.pts+=10; ex.innerHTML=`<b>Correto! +10 pontos.</b> ${q.e}`; }
+  else{ p.pts=Math.max(0,p.pts-5); ex.innerHTML=`<b>Incorreto. −5 pontos.</b> ${q.e}`; }
+  ex.classList.add('show');
+  modal.querySelector('#foot').classList.remove('hidden');
+  modal.querySelector('#contBtn').onclick=()=>{ hide(); renderScore(); endTurn(); };
+  renderScore();
+}
+
+/* ---------------- EVENTS ---------------- */
+function showEvent(p,good){
+  const pool=EVENTS.filter(e=>e.good===good);
+  const ev=pool[Math.floor(Math.random()*pool.length)];
+  modal.className='modal';
+  let delta='';
+  if(ev.move) delta+=`${ev.move>0?'▲ avança '+ev.move:'▼ volta '+Math.abs(ev.move)} casa(s) `;
+  if(ev.pts) delta+=`${ev.pts>0?'+':''}${ev.pts} pts `;
+  if(ev.skip) delta+='⏸ perde a vez';
+  modal.innerHTML=`
+    <div class="kind" style="color:${good?'var(--good)':'var(--danger)'}">
+      ${good?'Evento favorável':'Evento de risco'} · ${p.name}</div>
+    <div class="event-icon">${ev.ico}</div>
+    <div class="event-body">${ev.t}</div>
+    <div class="event-delta" style="color:${good?'var(--good)':'var(--danger)'}">${delta}</div>
+    <div class="modal-foot"><button class="primary" id="evBtn">Continuar →</button></div>`;
+  modal.querySelector('#evBtn').onclick=()=>{
+    if(ev.pts)p.pts=Math.max(0,p.pts+ev.pts);
+    if(ev.skip)p.skip=true;
+    let moved=false;
+    if(ev.move){
+      let t=Math.max(0,Math.min(N-1,p.pos+ev.move));
+      p.pos=t; moved=true;
+      if(p.pos>=N-1){ hide(); renderAll(); return win(p); }
+    }
+    hide(); renderAll();
+    endTurn();
+  };
+  show();
+}
+
+/* ---------------- TURN FLOW ---------------- */
+function endTurn(){ renderAll(); nextTurn(); }
+function nextTurn(){
+  turn=(turn+1)%players.length;
+  renderTurn();
+  rollBtn.disabled=false;
+  diceEl.textContent='–';
+  if(!msgEl.textContent.includes('perdeu'))
+    msgEl.textContent=`Vez de ${players[turn].name}. Role o dado.`;
+}
+
+/* ---------------- WIN ---------------- */
+function win(p){
+  const ranked=[...players].sort((a,b)=> b.pos-a.pos || b.pts-a.pts);
+  modal.className='modal win';
+  let board=ranked.map((pl,i)=>`<div class="srow"><span class="pos">#${i+1}</span>
+    <span class="dot" style="width:12px;height:12px;background:${pl.color}"></span>
+    <span class="nm">${pl.name}</span><span class="pts">${pl.pts} pts</span></div>`).join('');
+  modal.innerHTML=`
+    <div class="kind" style="color:var(--gold)">Fim de jogo</div>
+    <div class="event-icon">🏆</div>
+    <h3 style="text-align:center">${p.name} chegou à Sinapse Final!</h3>
+    <div style="margin:16px 0">${board}</div>
+    <div class="modal-foot" style="justify-content:center">
+      <button class="primary" id="again">Jogar de novo</button></div>`;
+  modal.querySelector('#again').onclick=()=>location.reload();
+  rollBtn.disabled=true;
+  show();
+}
+
+function show(){overlay.classList.add('show');}
+function hide(){overlay.classList.remove('show');}
+
+/* ---------------- PWA: service worker ---------------- */
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
